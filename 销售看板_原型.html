@@ -1,0 +1,715 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>经营看板 · 两级原型</title>
+<style>
+:root{
+  --brand:#c8d92c;--brand-strong:#afc116;--brand-deep:#e2ef62;--brand-soft:#596124;
+  --ink:#f7f7f3;--text:#e4e4de;--muted:#c7c8c0;--faint:#b0b1a9;--line:#625e59;
+  --line-soft:#57534f;--bg:#3b3935;--surface:#47433f;--surface-raised:#575351;
+  --sleep:#85857f;--warning:#f2c56c;--warning-soft:#594d35;--danger:#ff8176;
+  --shadow:0 10px 28px rgba(12,12,10,.16);--radius:14px;
+}
+*{box-sizing:border-box}
+html,body,.table-card{scrollbar-width:none;-ms-overflow-style:none}
+html::-webkit-scrollbar,body::-webkit-scrollbar,.table-card::-webkit-scrollbar{width:0;height:0;display:none}
+html,body{margin:0;min-width:1200px;min-height:100%;background:var(--bg);color:var(--text);color-scheme:dark;font-family:"Microsoft YaHei","PingFang SC",sans-serif;font-size:14px}
+button,input,select{font:inherit}button{cursor:pointer}button:focus-visible,input:focus-visible,select:focus-visible{outline:3px solid rgba(200,217,44,.42);outline-offset:2px}
+.app{display:grid;grid-template-columns:220px minmax(0,1fr);min-height:100vh}
+.sidebar{position:fixed;inset:0 auto 0 0;width:220px;background:var(--surface);border-right:1px solid var(--line);padding:24px 16px 20px;display:flex;flex-direction:column;z-index:20}
+.brand{height:54px;padding:0 14px;display:flex;align-items:center;gap:11px;margin-bottom:23px}
+.brand-mark{width:35px;height:35px;border-radius:11px;background:var(--brand);position:relative;box-shadow:0 5px 12px rgba(200,217,44,.24)}
+.brand-mark:before{content:"";position:absolute;width:18px;height:7px;left:8px;top:8px;border:3px solid #252b16;border-bottom:0;border-radius:5px 5px 0 0}
+.brand-mark:after{content:"";position:absolute;width:14px;height:7px;left:10px;top:20px;border-radius:0 0 7px 7px;background:#252b16}
+.wordmark b{display:block;color:var(--ink);font-size:20px;line-height:1;font-weight:750;letter-spacing:-.6px}
+.nav-label{padding:0 14px;margin:0 0 9px;color:var(--faint);font-size:11px;font-weight:600;letter-spacing:.6px}
+.nav-list{display:flex;flex-direction:column;gap:5px}
+.nav-item{width:100%;height:46px;padding:0 14px;border:0;border-radius:10px;background:transparent;display:flex;align-items:center;gap:12px;color:var(--muted);position:relative;text-align:left}
+.nav-item svg{width:18px;height:18px;stroke:currentColor;stroke-width:1.7;fill:none}
+.nav-item.active{background:rgba(200,217,44,.14);color:#f0f6c1;font-weight:700}
+.nav-item.active:before{content:"";position:absolute;left:-16px;top:10px;width:4px;height:26px;border-radius:0 4px 4px 0;background:var(--brand)}
+.nav-item.muted{cursor:default}
+.sidebar-bottom{margin-top:auto;border-top:1px solid var(--line-soft);padding:17px 12px 0;display:flex;align-items:center;gap:10px}
+.avatar{width:34px;height:34px;border-radius:10px;background:var(--brand-soft);color:var(--brand-deep);display:grid;place-items:center;font-size:12px;font-weight:750}
+.dealer b{display:block;color:var(--ink);font-size:12px}
+main{grid-column:2;min-width:0;padding:27px 32px 36px}
+.view{display:none;animation:fade .16s ease-out}.view.active{display:block}@keyframes fade{from{opacity:.45;transform:translateY(3px)}to{opacity:1;transform:none}}
+@media(prefers-reduced-motion:reduce){.view{animation:none}}
+
+h1{margin:0;color:var(--ink);font-size:27px;line-height:1.2;letter-spacing:-.7px}
+.page-head{min-height:58px;display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:20px}
+.page-head.compact{min-height:auto;margin-bottom:16px}
+.updated{display:flex;align-items:center;gap:8px;color:var(--muted);font-size:12px;padding-top:8px}
+.live-dot{width:7px;height:7px;border-radius:50%;background:var(--brand);box-shadow:0 0 0 4px var(--brand-soft)}
+.section-head{min-height:34px;display:flex;align-items:flex-start;justify-content:space-between}
+.section-title{color:var(--ink);font-size:17px;font-weight:700}
+
+.card{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow)}
+.mono{font-variant-numeric:tabular-nums}
+
+.control{height:38px;border:1px solid var(--line);background:var(--surface-raised);border-radius:9px;padding:0 12px;color:var(--text);min-width:104px}
+.control:hover{border-color:var(--brand)}
+.search{width:220px}
+.link-btn{border:0;background:transparent;color:var(--brand-deep);font-size:12px;font-weight:700;padding:8px 4px;white-space:nowrap}
+.link-btn:hover{text-decoration:underline}
+.delta{height:24px;padding:0 8px;border-radius:7px;background:var(--brand-soft);color:var(--brand-deep);display:inline-flex;align-items:center;gap:3px;font-size:11px;font-weight:750;white-space:nowrap}
+.delta.down{background:var(--surface-raised);color:var(--muted)}
+.enter-mark{width:21px;height:21px;border:1px solid var(--line);border-radius:7px;background:var(--surface-raised);color:var(--brand-deep);display:grid;place-items:center;font-size:15px;line-height:1;font-weight:700}
+.tag{display:inline-flex;align-items:center;height:26px;padding:0 9px;border-radius:999px;font-size:11px;font-weight:700}
+.tag.active{background:var(--brand-soft);color:var(--brand-deep)}
+.tag.sleep{background:var(--surface-raised);color:var(--muted)}
+.tag.warning{background:var(--warning-soft);color:var(--warning)}
+
+/* Package */
+.sales{margin-bottom:20px}
+.package-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+.package-card{padding:17px 20px 16px;position:relative;overflow:hidden}
+.package-card:before{content:"";position:absolute;left:0;top:0;bottom:0;width:4px;background:var(--brand)}
+.package-top{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:14px}
+.package-name{color:var(--ink);font-size:15px;font-weight:750}
+.package-note{color:var(--faint);font-size:10px;margin-top:4px}
+.expiry-link{height:28px;padding:0 2px;border:0;background:transparent;color:var(--warning);font-size:12px;font-weight:700}
+.expiry-link:hover{text-decoration:underline}
+.expiry-link.zero{color:var(--muted);cursor:default}.expiry-link.zero:hover{text-decoration:none}
+.package-body{display:grid;grid-template-columns:repeat(3,1fr);margin-bottom:13px}
+.package-metric{padding:0 16px;border-left:1px solid var(--line-soft)}
+.package-metric:first-child{border-left:0;padding-left:0}
+.label{color:var(--muted);font-size:11px;margin-bottom:4px}
+.metric-value{color:var(--ink);font-size:21px;line-height:1.15;font-weight:750;letter-spacing:-.5px}
+.unit{margin-left:3px;color:var(--muted);font-size:11px;font-weight:400}
+.progress-row{display:grid;grid-template-columns:auto 1fr auto;align-items:center;gap:10px;color:var(--muted);font-size:10px}
+.progress{height:6px;border-radius:4px;background:var(--line);overflow:hidden}
+.progress span{display:block;height:100%;border-radius:4px;background:var(--brand)}
+.progress-value{color:var(--brand-deep);font-weight:750}
+
+/* Customer section */
+.customer-head{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:16px}
+.customer-head .section-title{display:flex;align-items:center;gap:12px}
+.customer-actions{display:flex;align-items:center;gap:16px}
+
+.bento{display:grid;grid-template-columns:2fr 1fr;gap:16px;align-items:stretch}
+.status-card{padding:23px 25px;min-width:0;min-height:300px}
+.status-tabs{display:flex;gap:20px;margin-bottom:18px;border-bottom:1px solid var(--line-soft);padding-bottom:12px}
+.status-tab{border:0;background:transparent;color:var(--muted);font-size:13px;font-weight:650;padding:4px 0;position:relative}
+.status-tab.active{color:var(--ink)}
+.status-tab.active:after{content:"";position:absolute;left:0;right:0;bottom:-13px;height:2px;background:var(--brand);border-radius:2px}
+
+.status-total-line{display:flex;align-items:center;gap:12px;white-space:nowrap}
+.eyebrow{color:var(--muted);font-size:11px;margin-bottom:7px}
+.total{display:flex;align-items:baseline;gap:6px;color:var(--ink);font-size:44px;font-weight:760;letter-spacing:-1px}
+.total .unit{font-size:13px}
+.status-main{display:grid;grid-template-columns:210px minmax(300px,1fr);gap:32px;align-items:center;min-height:200px}
+.donut-wrap{grid-column:1;grid-row:1;display:grid;place-items:center;position:relative;border:0;background:transparent;cursor:pointer;padding:0}
+.donut{--pct:91.4%;width:170px;height:170px;border-radius:50%;background:conic-gradient(var(--brand) 0 var(--pct),var(--sleep) var(--pct) 100%);position:relative}
+.donut:after{content:"";position:absolute;inset:25px;background:var(--surface);border-radius:50%}
+.donut-center{position:absolute;z-index:2;text-align:center}
+.donut-center b{display:block;color:var(--ink);font-size:28px;line-height:1;font-weight:750}
+.donut-center span{display:block;color:var(--muted);font-size:11px;margin-top:7px}
+.status-list{grid-column:2;grid-row:1;border-top:1px solid var(--line-soft);align-self:center}
+.status-row{width:100%;height:76px;padding:0 4px;border:0;border-bottom:1px solid var(--line-soft);background:transparent;display:grid;grid-template-columns:12px minmax(100px,1fr) auto auto 26px;grid-template-rows:1fr;column-gap:16px;align-items:center;text-align:left}
+.status-row:hover{background:rgba(200,217,44,.055)}
+.status-row .dot{grid-column:1;grid-row:1;align-self:center}
+.dot{width:9px;height:9px;border-radius:50%;background:var(--brand)}.dot.sleep{background:var(--sleep)}
+.status-name{grid-column:2;grid-row:1;color:var(--ink);font-size:14px;font-weight:650;white-space:nowrap}
+.status-num{grid-column:3;grid-row:1;color:var(--ink);font-size:24px;font-weight:750;white-space:nowrap}
+.status-row .delta{grid-column:4;grid-row:1;justify-self:end;height:26px;padding:0 8px;font-size:12px;white-space:nowrap}
+.status-row .enter-mark{grid-column:5;grid-row:1;align-self:center;justify-self:end}
+
+/* City distribution */
+.city-dist{display:none}
+.city-dist.show{display:block}
+.city-dist .city-row{display:flex;align-items:center;justify-content:space-between;height:44px;padding:0 4px;border-bottom:1px solid var(--line-soft)}
+.city-dist .city-row:last-child{border-bottom:0}
+.city-dist .city-name{font-weight:650;color:var(--ink);font-size:13px}
+.city-dist .city-right{display:flex;align-items:center;gap:12px}
+.city-dist .city-num{font-size:18px;font-weight:750;color:var(--ink)}
+.city-dist .city-pct{font-size:12px;color:var(--muted)}
+.city-dist .city-bar-wrap{flex:1;margin:0 12px}
+.city-dist .city-bar{height:6px;border-radius:3px;background:var(--brand)}
+
+.side{display:block;min-width:0;height:100%}
+.side>.card{height:100%}
+.metric-grid{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);grid-template-rows:minmax(0,1fr) minmax(0,1fr);overflow:hidden}
+.metric-grid .compact-metric{border-right:1px solid var(--line-soft);border-bottom:1px solid var(--line-soft)}
+.metric-grid .compact-metric:nth-child(2n){border-right:0}
+.metric-grid .compact-metric:nth-child(n+3){border-bottom:0}
+.metric-grid .compact-metric.interactive{cursor:pointer;transition:background .18s ease}
+.metric-grid .compact-metric.interactive:hover{background:rgba(200,217,44,.055)}
+.metric-grid .compact-metric.interactive:focus-visible{outline:2px solid var(--brand);outline-offset:-2px}
+.metric-label-row{display:flex;align-items:center;justify-content:space-between;gap:8px}
+.metric-wide{padding:20px;display:flex;align-items:center;justify-content:space-between;gap:14px;text-align:left}
+.metric-pair{display:grid;grid-template-columns:minmax(0,1fr) 1px minmax(0,1fr);overflow:hidden;min-width:0}
+.compact-metric{padding:22px;border:0;background:var(--surface);display:flex;flex-direction:column;justify-content:center;gap:14px;min-width:0;text-align:left;cursor:default}
+.stat-label{color:var(--muted);font-size:13px;line-height:1.4;font-weight:500}
+.value-line{display:flex;align-items:center;gap:10px;min-width:0}
+.value-line .value{color:var(--ink);font-size:28px;font-weight:760;line-height:1.15;letter-spacing:-.55px;white-space:nowrap}
+.metric-grid .unit{font-size:12px;margin-left:4px}
+.metric-grid .value-line{gap:8px}
+.metric-grid .delta{height:30px;padding:0 8px;border-radius:8px;font-size:12px}
+.metric-grid .metric-enter{width:30px;height:30px;border-radius:9px;font-size:18px;flex:0 0 auto}
+.metric-wide .value-line .value{font-size:28px}
+.metric-icon{width:36px;height:36px;border-radius:10px;background:var(--brand-soft);color:var(--brand-deep);display:grid;place-items:center;flex:0 0 auto}
+.metric-icon svg{width:18px;height:18px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+.head-tools{display:flex;align-items:center;gap:7px}
+.pair-divider{width:1px;height:100%;background:var(--line-soft)}
+
+/* Overview */
+.trend-toggle{display:flex;align-items:center;gap:6px;font-size:13px;color:var(--brand-deep);cursor:pointer;padding:8px 0;user-select:none;font-weight:650}
+.trend-toggle:hover{text-decoration:underline}
+.trend-toggle .arrow{transition:transform .2s;display:inline-block;font-size:10px}
+.trend-toggle .arrow.open{transform:rotate(90deg)}
+.trend-content{display:none;margin-bottom:16px}
+.trend-content.open{display:block}
+.chart-card-overview{padding:20px 22px;min-height:240px}
+.chart-card-overview .chart-wrap{display:flex;align-items:center;gap:12px}
+.chart-card-overview .chart-wrap .chart-area{flex:1;min-width:0;overflow:hidden}
+.trend-nav-btn{width:40px;height:40px;padding:0;border:1px solid var(--line);border-radius:50%;background:var(--surface-raised);color:var(--muted);display:grid;place-items:center;cursor:pointer;flex:0 0 40px;transition:background .16s,border-color .16s,color .16s}
+.trend-nav-btn svg{width:18px;height:18px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+.trend-nav-btn:hover:not(:disabled){background:var(--brand-soft);border-color:var(--brand);color:var(--brand-deep)}
+.trend-nav-btn:disabled{opacity:.25;cursor:default}
+.trend-nav-btn[hidden]{display:none}
+.trend-legend{display:flex;align-items:center;gap:18px;color:var(--muted);font-size:11px;margin-bottom:8px}
+.trend-legend i{display:inline-block;width:18px;height:3px;border-radius:2px;background:var(--brand);margin-right:6px;vertical-align:middle}
+.trend-legend i.gray{background:var(--sleep)}
+.trend-range-label{font-size:12px;color:var(--muted);text-align:center;margin-top:8px}
+
+/* Toolbar & Table */
+.toolbar{display:flex;align-items:center;gap:10px;margin-bottom:14px;flex-wrap:wrap}
+.clear-btn{margin-left:auto}
+.table-card{overflow:auto}
+.data-table{width:100%;min-width:1040px;border-collapse:collapse;table-layout:fixed}
+.data-table thead{background:var(--surface-raised)}
+.data-table th{height:48px;padding:0 12px;text-align:left;color:var(--muted);font-size:11px;border-bottom:1px solid var(--line);font-weight:700}
+.data-table td{height:54px;padding:0 12px;border-bottom:1px solid var(--line-soft);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.data-table tbody tr{cursor:default}
+.data-table tbody tr:hover{background:rgba(200,217,44,.055)}
+.data-table .name{color:var(--ink);font-weight:700}
+.sort-head{display:flex;align-items:center;gap:3px;white-space:nowrap}
+.sort-btn{width:28px;height:28px;padding:0;border:0;border-radius:7px;background:transparent;color:var(--faint);display:grid;place-items:center;font-size:13px;line-height:1;transition:background .16s,color .16s}
+.sort-btn:hover{background:var(--brand-soft);color:var(--brand-deep)}
+.sort-btn.active{color:var(--brand-deep);font-weight:800}
+.pagination{height:56px;padding:0 16px;display:flex;align-items:center;justify-content:space-between;border-top:1px solid var(--line)}
+.page-button{width:31px;height:31px;border:1px solid var(--line);border-radius:8px;background:var(--surface-raised);color:var(--muted)}
+.page-button.active{background:var(--brand);border-color:var(--brand);color:#293000;font-weight:750}
+.result-info{color:var(--muted);font-size:11px}
+
+.back-btn-row{display:flex;align-items:center;gap:4px;color:var(--muted);font-weight:650;padding:5px 0 12px;cursor:pointer;border:0;background:transparent;font-size:14px}
+.back-btn-row:hover{color:var(--brand-deep)}
+.back-btn-row svg{width:16px;height:16px;stroke:currentColor;stroke-width:2;fill:none}
+.empty-state{display:grid;place-items:center;height:200px;color:var(--muted);font-size:13px}
+</style>
+</head>
+<body>
+<div class="app">
+  <aside class="sidebar">
+    <div class="brand"><div class="brand-mark"></div><div class="wordmark"><b>经销商平台</b></div></div>
+    <div class="nav-label">主要功能</div>
+    <nav class="nav-list">
+      <button class="nav-item muted" type="button"><svg viewBox="0 0 24 24"><circle cx="9" cy="8" r="3"/><path d="M3 20h18M9 20v-4h6v4"/></svg><span>客户管理</span></button>
+      <button class="nav-item active" type="button" id="nav-dashboard"><svg viewBox="0 0 24 24"><rect x="4" y="4" width="6" height="6" rx="1"/><rect x="14" y="4" width="6" height="6" rx="1"/><rect x="4" y="14" width="6" height="6" rx="1"/><rect x="14" y="14" width="6" height="6" rx="1"/></svg><span>销售看板</span></button>
+      <button class="nav-item muted" type="button"><svg viewBox="0 0 24 24"><rect x="6" y="4" width="12" height="16" rx="2"/><path d="M10 9h4M10 13h2"/></svg><span>套餐管理</span></button>
+      <button class="nav-item muted" type="button"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="8"/><path d="M12 7v5l3 2"/></svg><span>系统设置</span></button>
+    </nav>
+    <div class="sidebar-bottom"><div class="avatar">华东</div><div class="dealer"><b>华东经销商</b></div></div>
+  </aside>
+
+  <main>
+    <!-- ==================== 经营看板 ==================== -->
+    <section class="view active" id="view-dashboard">
+      <header class="page-head">
+        <div><h1>经营看板</h1></div>
+        <div class="updated"><span class="live-dot"></span><span>数据更新于 10:32</span></div>
+      </header>
+
+      <section class="sales">
+        <div class="section-head"><div class="section-title">套餐销售概况</div></div>
+        <div class="package-grid">
+          <article class="card package-card">
+            <div class="package-top">
+              <div><div class="package-name">一年无限次</div></div>
+              <button class="expiry-link" data-pkg="一年无限次">30天内到期 5户 →</button>
+            </div>
+            <div class="package-body">
+              <div class="package-metric"><div class="label">总量</div><div class="metric-value mono">200<span class="unit">份</span></div></div>
+              <div class="package-metric"><div class="label">已售</div><div class="metric-value mono">148<span class="unit">份</span></div></div>
+              <div class="package-metric"><div class="label">剩余</div><div class="metric-value mono">52<span class="unit">份</span></div></div>
+            </div>
+            <div class="progress-row"><span>销售进度</span><div class="progress"><span style="width:74%"></span></div><span class="progress-value mono">74%</span></div>
+          </article>
+          <article class="card package-card">
+            <div class="package-top">
+              <div><div class="package-name">五年每年600次</div></div>
+              <button class="expiry-link zero" data-pkg="五年每年600次">30天内到期 0户</button>
+            </div>
+            <div class="package-body">
+              <div class="package-metric"><div class="label">总量</div><div class="metric-value mono">100<span class="unit">份</span></div></div>
+              <div class="package-metric"><div class="label">已售</div><div class="metric-value mono">67<span class="unit">份</span></div></div>
+              <div class="package-metric"><div class="label">剩余</div><div class="metric-value mono">33<span class="unit">份</span></div></div>
+            </div>
+            <div class="progress-row"><span>销售进度</span><div class="progress"><span style="width:67%"></span></div><span class="progress-value mono">67%</span></div>
+          </article>
+        </div>
+      </section>
+
+      <section>
+        <div class="customer-head">
+          <div class="section-title">客户情况 <button class="link-btn" id="dash-to-list">查看客户 →</button></div>
+          <div class="customer-actions">
+            <select class="control" id="dash-time">
+              <option>今日</option><option>本周</option><option selected>本月</option>
+              <option>本季度</option><option>本年</option><option>所有</option>
+            </select>
+          </div>
+        </div>
+        <div class="bento">
+          <article class="card status-card">
+            <!-- Tab 切换 -->
+            <div class="status-tabs">
+              <button type="button" class="status-tab active" data-tab="total">活跃状态</button>
+              <button type="button" class="status-tab" data-tab="city">地区分布</button>
+            </div>
+            <!-- 活跃状态视图 -->
+            <div id="view-total">
+              <div class="status-main">
+                <button type="button" class="donut-wrap" id="donut-click" aria-label="查看活跃客户">
+                  <div class="donut" id="dash-donut"></div>
+                  <div class="donut-center"><b class="mono" id="dash-active-pct">91.4%</b><span>活跃占比</span></div>
+                </button>
+                <div class="status-list">
+                  <button type="button" class="status-row" data-range="活跃客户">
+                    <span class="dot"></span><span class="status-name">活跃客户</span>
+                    <span class="status-num mono" id="dash-active">128户</span>
+                    <span class="delta" id="dash-active-delta">↑ 3户</span>
+                    <span class="enter-mark">›</span>
+                  </button>
+                  <button type="button" class="status-row" data-range="沉睡客户">
+                    <span class="dot sleep"></span><span class="status-name">沉睡客户</span>
+                    <span class="status-num mono" id="dash-sleep">12户</span>
+                    <span class="delta down" id="dash-sleep-delta">↓ 2户</span>
+                    <span class="enter-mark">›</span>
+                  </button>
+                </div>
+              </div>
+            </div>
+            <!-- 地区分布视图 -->
+            <div class="city-dist" id="view-city"></div>
+          </article>
+          <div class="side">
+            <article class="card metric-grid">
+              <button type="button" class="compact-metric interactive" id="valid-total-click" aria-label="查看有效客户">
+                <div class="stat-label">有效客户总数</div>
+                <div class="value-line"><div class="value mono"><span id="dash-total">140</span><span class="unit">户</span></div><span class="enter-mark metric-enter" aria-hidden="true">›</span></div>
+              </button>
+              <div class="compact-metric">
+                <div class="stat-label">新增开户数</div>
+                <div class="value-line"><div class="value mono"><span id="dash-open">3</span><span class="unit">户</span></div><span class="delta" id="dash-open-delta">↑ 1户</span></div>
+              </div>
+              <div class="compact-metric">
+                <div class="stat-label">平均扫描时长</div>
+                <div class="value-line"><div class="value mono" id="dash-duration">1分48秒</div><span class="delta" id="dash-duration-delta">↑ 12秒</span></div>
+              </div>
+              <div class="compact-metric">
+                <div class="stat-label">扫描次数</div>
+                <div class="value-line"><div class="value mono" id="dash-scans">12,830<span class="unit">次</span></div><span class="delta" id="dash-scans-delta">↑ 1,240次</span></div>
+              </div>
+            </article>
+          </div>
+        </div>
+      </section>
+    </section>
+
+    <!-- ==================== 客户总览 ==================== -->
+    <section class="view" id="view-overview">
+      <button class="back-btn-row" id="overview-back"><svg viewBox="0 0 24 24"><path d="M15 18l-6-6 6-6"/></svg> 返回经营看板</button>
+      <header class="page-head compact"><div><h1>客户总览</h1></div></header>
+
+      <div>
+        <div class="trend-toggle" id="trend-toggle-btn"><span class="arrow" id="trend-arrow">▶</span> 近12个月活跃趋势</div>
+        <div class="trend-content" id="trend-content">
+          <article class="card chart-card-overview">
+            <div class="trend-legend"><span><i></i>活跃客户</span><span><i class="gray"></i>沉睡客户</span></div>
+            <div class="chart-wrap">
+              <button class="trend-nav-btn" id="trend-prev" type="button" aria-label="查看更早月份" title="查看更早月份" disabled><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15 18l-6-6 6-6"/></svg></button>
+              <div class="chart-area"><div class="chart detail-chart" id="overview-chart"></div></div>
+              <button class="trend-nav-btn" id="trend-next" type="button" aria-label="查看更晚月份" title="查看更晚月份"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg></button>
+            </div>
+            <div class="trend-range-label" id="trend-range-label">1月 ~ 12月</div>
+          </article>
+        </div>
+      </div>
+
+      <div class="toolbar">
+        <input class="control search" id="ov-search" placeholder="搜索客户名称">
+        <select class="control" id="ov-time"><option>今日</option><option>本周</option><option selected>本月</option><option>本季度</option><option>本年</option><option>所有</option></select>
+        <select class="control" id="ov-city"><option>全部城市</option></select>
+        <select class="control" id="ov-pkg"><option>全部套餐</option><option>一年无限次</option><option>五年每年600次</option></select>
+        <select class="control" id="ov-range"><option>有效客户</option><option>活跃客户</option><option>沉睡客户</option><option>30天内到期</option></select>
+        <button class="link-btn clear-btn" id="ov-clear">清除筛选</button>
+      </div>
+
+      <article class="card table-card">
+        <table class="data-table">
+          <colgroup><col style="width:14%"><col style="width:13%"><col style="width:8%"><col style="width:11%"><col style="width:9%"><col style="width:14%"><col style="width:9%"><col style="width:9%"><col style="width:13%"></colgroup>
+          <thead><tr>
+            <th>客户名称</th>
+            <th>当前套餐</th>
+            <th>所属城市</th>
+            <th><span class="sort-head"><span>到期时间</span><button class="sort-btn active" data-sort="expiry">↓</button></span></th>
+            <th>活跃状态</th>
+            <th>最近使用时间</th>
+            <th><span class="sort-head"><span>扫描次数</span><button class="sort-btn" data-sort="scans">↕</button></span></th>
+            <th><span class="sort-head"><span>活跃天数</span><button class="sort-btn" data-sort="activeDays">↕</button></span></th>
+            <th><span class="sort-head"><span>平均扫描时长</span><button class="sort-btn" data-sort="duration">↕</button></span></th>
+          </tr></thead>
+          <tbody id="ov-table-body"></tbody>
+        </table>
+        <div class="pagination"><span class="result-info" id="ov-result-info"></span><div id="ov-page-btns"></div></div>
+      </article>
+    </section>
+
+  </main>
+</div>
+
+<script>
+const fmt = n => Number(n).toLocaleString('zh-CN');
+const dur = s => s ? `${Math.floor(s/60)}分${String(s%60).padStart(2,'0')}秒` : '—';
+
+// ===== Chart Data（必须在 state 前）=====
+const allMonths = ['2023-01','2023-02','2023-03','2023-04','2023-05','2023-06','2023-07','2023-08','2023-09','2023-10','2023-11','2023-12','2024-01','2024-02','2024-03','2024-04','2024-05','2024-06','2024-07','2024-08','2024-09','2024-10','2024-11','2024-12','2025-01','2025-02','2025-03','2025-04','2025-05','2025-06','2025-07','2025-08','2025-09','2025-10','2025-11','2025-12','2026-01','2026-02','2026-03','2026-04','2026-05','2026-06','2026-07'];
+const allActive = [95,97,98,100,102,104,106,108,107,109,110,112,113,115,116,118,119,120,121,122,121,123,124,125,124,126,127,128,127,126,128,129,130,129,128,128,130,131,132,131,130,128,128];
+const allSleep = [25,23,22,20,18,16,14,12,13,11,10,8,7,5,4,2,1,0,0,0,0,0,0,0,0,0,0,0,1,2,0,0,0,1,2,2,0,0,0,1,2,12,12];
+const WIN = 12;
+
+const state = {
+  route: 'dashboard',
+  dashTime: '本月', dashTab: 'total',
+  ov: { time:'本月', city:'全部城市', pkg:'全部套餐', range:'有效客户', search:'', sort:'expiry', sortDir:'asc', page:1, trendOffset: Math.max(0, allMonths.length - WIN) }
+};
+const pageSize = 20;
+
+const clients = [
+  { id:'KH-10286',name:'杭州康源门诊',pkg:'一年无限次',city:'杭州',expiry:'2027-07-20',status:'活跃',scans:268,duration:252,activeDays:18,last:'2026-07-21 09:42',opened:'2025-08-16'},
+  { id:'KH-10287',name:'宁波安和诊所',pkg:'五年每年600次',city:'宁波',expiry:'2026-09-18',status:'活跃',scans:182,duration:308,activeDays:24,last:'2026-07-20 16:05',opened:'2024-11-03'},
+  { id:'KH-10288',name:'温州瑞康门诊',pkg:'一年无限次',city:'温州',expiry:'2026-08-02',status:'沉睡',scans:0,duration:0,activeDays:0,last:'—',opened:'2025-06-12'},
+  { id:'KH-10289',name:'绍兴仁济诊所',pkg:'一年无限次',city:'绍兴',expiry:'2027-03-11',status:'活跃',scans:156,duration:226,activeDays:19,last:'2026-07-21 08:16',opened:'2025-02-21'},
+  { id:'KH-10290',name:'嘉兴同安门诊',pkg:'五年每年600次',city:'嘉兴',expiry:'2029-12-06',status:'活跃',scans:143,duration:261,activeDays:18,last:'2026-07-19 14:28',opened:'2024-12-07'},
+  { id:'KH-10291',name:'湖州康宁诊所',pkg:'一年无限次',city:'湖州',expiry:'2026-10-24',status:'沉睡',scans:21,duration:362,activeDays:2,last:'2026-06-29 11:03',opened:'2025-03-15'},
+  { id:'KH-10292',name:'金华惠民门诊',pkg:'一年无限次',city:'金华',expiry:'2027-01-15',status:'活跃',scans:128,duration:248,activeDays:16,last:'2026-07-18 17:12',opened:'2025-01-15'},
+  { id:'KH-10293',name:'台州益康诊所',pkg:'五年每年600次',city:'台州',expiry:'2030-04-09',status:'沉睡',scans:8,duration:334,activeDays:1,last:'2026-05-18 10:22',opened:'2025-04-09'},
+  { id:'KH-10294',name:'杭州益民诊所',pkg:'一年无限次',city:'杭州',expiry:'2026-08-12',status:'活跃',scans:116,duration:279,activeDays:15,last:'2026-07-21 10:02',opened:'2025-08-12'},
+  { id:'KH-10295',name:'宁波康乐门诊',pkg:'五年每年600次',city:'宁波',expiry:'2028-05-19',status:'活跃',scans:104,duration:241,activeDays:14,last:'2026-07-20 13:44',opened:'2023-05-19'},
+  { id:'KH-10296',name:'温州和安诊所',pkg:'一年无限次',city:'温州',expiry:'2027-09-02',status:'沉睡',scans:15,duration:318,activeDays:2,last:'2026-06-24 09:11',opened:'2025-09-02'},
+  { id:'KH-10297',name:'绍兴康桥门诊',pkg:'五年每年600次',city:'绍兴',expiry:'2029-03-07',status:'活跃',scans:98,duration:265,activeDays:13,last:'2026-07-17 15:20',opened:'2024-03-07'}
+];
+
+// City distribution
+const cityDist = [['杭州',86],['宁波',52],['温州',38],['绍兴',31],['嘉兴',24],['湖州',17],['金华',8],['台州',4]];
+
+// ===== Navigation =====
+function showView(name) {
+  document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
+  const el = document.getElementById('view-' + name);
+  if (el) el.classList.add('active');
+  state.route = name;
+  window.scrollTo(0, 0);
+}
+
+function goDashboard() { showView('dashboard'); }
+
+function goOverview(params = {}) {
+  if (state.route === 'dashboard') state.ov.time = state.dashTime;
+  if (params.expiringPkg) { state.ov.range = '30天内到期'; state.ov.pkg = params.expiringPkg; state.ov.sort = 'expiry'; state.ov.sortDir = 'asc'; }
+  else if (params.range) { state.ov.range = params.range; }
+  else { state.ov.range = '有效客户'; }
+  state.ov.page = 1; state.ov.trendOffset = Math.max(0, allMonths.length - WIN);
+  syncOvFilters();
+  renderOvTable();
+  renderOvChart();
+  showView('overview');
+  if (params.trend) {
+    document.getElementById('trend-content').classList.add('open');
+    document.getElementById('trend-arrow').classList.add('open');
+  }
+}
+
+// ===== Dashboard =====
+function setDelta(el, text) {
+  el.textContent = text || ''; el.hidden = !text; el.classList.toggle('down', text.startsWith('↓'));
+}
+
+const dashData = {
+  '今日':{total:140,active:52,sleep:88,open:0,scans:580,duration:104,deltas:['↑ 7户','↑ 2户','↑ 5户','—','↑ 8秒','↑ 42次']},
+  '本周':{total:140,active:78,sleep:62,open:1,scans:2410,duration:106,deltas:['↑ 7户','↑ 4户','↑ 3户','↑ 1户','↑ 10秒','↑ 180次']},
+  '本月':{total:140,active:128,sleep:12,open:3,scans:12830,duration:108,deltas:['↑ 7户','↑ 3户','↓ 2户','↑ 1户','↑ 12秒','↑ 1240次']},
+  '本季度':{total:140,active:133,sleep:7,open:8,scans:36200,duration:112,deltas:['↑ 7户','↑ 5户','↓ 1户','↑ 3户','↑ 15秒','↑ 2800次']},
+  '本年':{total:140,active:137,sleep:3,open:22,scans:91500,duration:114,deltas:['↑ 7户','↑ 6户','↓ 1户','↑ 6户','↑ 18秒','↑ 5200次']},
+  '所有':{total:140,active:138,sleep:2,open:260,scans:182000,duration:116,deltas:['','','','','','']}
+};
+
+function renderDashboard() {
+  const d = dashData[state.dashTime];
+  document.getElementById('dash-time').value = state.dashTime;
+
+  document.getElementById('dash-total').textContent = d.total;
+  document.getElementById('dash-active').textContent = d.active + '户';
+  document.getElementById('dash-sleep').textContent = d.sleep + '户';
+  const ap = (d.active/d.total*100).toFixed(1);
+  document.getElementById('dash-active-pct').textContent = ap + '%';
+  document.getElementById('dash-donut').style.setProperty('--pct', ap + '%');
+  document.getElementById('dash-open').textContent = d.open;
+  document.getElementById('dash-duration').textContent = dur(d.duration);
+  document.getElementById('dash-scans').textContent = fmt(d.scans);
+  setDelta(document.getElementById('dash-active-delta'), d.deltas[1]);
+  setDelta(document.getElementById('dash-sleep-delta'), d.deltas[2]);
+  setDelta(document.getElementById('dash-open-delta'), d.deltas[3]);
+  setDelta(document.getElementById('dash-duration-delta'), d.deltas[4]);
+  setDelta(document.getElementById('dash-scans-delta'), d.deltas[5]);
+
+  // City distribution
+  const total = d.total;
+  let chtml = '';
+  cityDist.forEach(([city, n]) => {
+    const cp = (n/total*100).toFixed(1);
+    chtml += `<div class="city-row">
+      <span class="city-name">${city}</span>
+      <div class="city-bar-wrap"><div class="city-bar" style="width:${cp}%"></div></div>
+      <span class="city-num mono">${n}<span style="font-size:12px;font-weight:400;color:var(--muted)">户</span></span>
+      <span class="city-pct mono">${cp}%</span>
+    </div>`;
+  });
+  document.getElementById('view-city').innerHTML = chtml;
+}
+
+function switchDashTab(tab) {
+  state.dashTab = tab;
+  document.querySelectorAll('.status-tab').forEach(t => t.classList.toggle('active', t.dataset.tab === tab));
+  document.getElementById('view-total').style.display = tab === 'total' ? 'block' : 'none';
+  document.getElementById('view-city').classList.toggle('show', tab === 'city');
+}
+
+// ===== Overview Chart =====
+function lineSvg(series, labels, w, h, axisUnit = '') {
+  const pad = { top:38, right:22, bottom:42, left:58 };
+  const pw = w - pad.left - pad.right, ph = h - pad.top - pad.bottom;
+  let all = []; series.forEach(s => all = all.concat(s.data));
+  const max = Math.max(...all) * 1.18;
+  const yMax = Math.max(20, Math.ceil(max / 20) * 20);
+  const x = (i, arr) => pad.left + i * pw / (arr.length - 1);
+  const y = v => pad.top + ph - v / yMax * ph;
+  let svg = `<svg viewBox="0 0 ${w} ${h}" role="img" aria-label="趋势折线图">`;
+  if (axisUnit) svg += `<text x="${pad.left}" y="18" font-size="12" font-weight="650" fill="#c7c8c0" font-family="Microsoft YaHei">${axisUnit}</text>`;
+  svg += `<g stroke="#625e59">`;
+  for (let i = 0; i <= 4; i++) {
+    const yy = pad.top + ph/4 * i;
+    const label = Math.round(yMax - (yMax/4)*i);
+    svg += `<line x1="${pad.left}" y1="${yy}" x2="${w-pad.right}" y2="${yy}"/>`;
+    svg += `<text x="${pad.left-10}" y="${yy+4}" text-anchor="end" font-size="12" font-weight="600" fill="#c7c8c0" font-family="Microsoft YaHei">${label}</text>`;
+  }
+  svg += `</g><line x1="${pad.left}" y1="${pad.top}" x2="${pad.left}" y2="${pad.top+ph}" stroke="#716c66"/><g fill="#c7c8c0" font-size="11" font-family="Microsoft YaHei">`;
+  labels.forEach((l, i) => { svg += `<text x="${x(i,labels)}" y="${h-14}" text-anchor="middle">${l}</text>`; });
+  svg += `</g>`;
+  series.forEach(s => {
+    const pts = s.data.map((v, i) => `${x(i,s.data)},${y(v)}`);
+    const color = s.color || '#c8d92c';
+    const dash = s.dashed ? ' stroke-dasharray="7 6"' : '';
+    svg += `<path d="M${pts.join(' L')}" fill="none" stroke="${color}" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"${dash}/>`;
+    s.data.forEach((v, i) => {
+      svg += `<circle cx="${x(i,s.data)}" cy="${y(v)}" r="4" fill="#47433f" stroke="${color}" stroke-width="2.5"/>`;
+    });
+  });
+  svg += `</svg>`;
+  return svg;
+}
+
+function renderOvChart() {
+  const off = state.ov.trendOffset;
+  const maxOff = allMonths.length - WIN;
+  const labels = allMonths.slice(off, off + WIN).map(m => m.slice(2)); // "23/01","23/02"...
+  const act = allActive.slice(off, off + WIN);
+  const slp = allSleep.slice(off, off + WIN);
+  document.getElementById('overview-chart').innerHTML = lineSvg([
+    { name:'活跃', data:act, color:'#c8d92c' },
+    { name:'沉睡', data:slp, color:'#85857f', dashed:true }
+  ], labels, 760, 260, '客户数（户）');
+
+  document.getElementById('trend-range-label').textContent = `${allMonths[off].slice(0,4)}年${allMonths[off].slice(5)}月 ~ ${allMonths[off+WIN-1].slice(0,4)}年${allMonths[off+WIN-1].slice(5)}月`;
+  document.getElementById('trend-prev').disabled = off === 0;
+  document.getElementById('trend-next').disabled = off >= maxOff;
+}
+
+// ===== Overview Table =====
+function syncOvFilters() {
+  document.getElementById('ov-time').value = state.ov.time;
+  document.getElementById('ov-pkg').value = state.ov.pkg;
+  document.getElementById('ov-range').value = state.ov.range;
+  document.getElementById('ov-search').value = state.ov.search;
+}
+
+function scaleFor(time) {
+  return {'今日':.035,'本周':.21,'本月':1,'本季度':2.7,'本年':8.3,'所有':16}[time] || 1;
+}
+
+const prototypeToday = new Date('2026-07-21T23:59:59');
+
+function usedInTime(c, time) {
+  if (!c.last || c.last === '—' || !c.scans) return false;
+  const last = new Date(c.last.replace(' ', 'T'));
+  if (time === '所有') return true;
+  if (time === '今日') return last.toDateString() === prototypeToday.toDateString();
+  if (time === '本周') {
+    const start = new Date(prototypeToday);
+    const day = start.getDay() || 7;
+    start.setDate(start.getDate() - day + 1);
+    start.setHours(0,0,0,0);
+    return last >= start && last <= prototypeToday;
+  }
+  if (time === '本月') return last.getFullYear() === prototypeToday.getFullYear() && last.getMonth() === prototypeToday.getMonth();
+  if (time === '本季度') {
+    const startMonth = Math.floor(prototypeToday.getMonth()/3)*3;
+    const start = new Date(prototypeToday.getFullYear(), startMonth, 1);
+    return last >= start && last <= prototypeToday;
+  }
+  if (time === '本年') return last.getFullYear() === prototypeToday.getFullYear();
+  return false;
+}
+
+function cm(c, field, time) {
+  const s = scaleFor(time);
+  if (!usedInTime(c, time)) return 0;
+  if (field === 'scans') return Math.max(1, Math.round(c.scans * s));
+  if (field === 'activeDays') {
+    // activeDays is natural day count, capped by period length
+    if (time === '今日') return 1;
+    if (time === '本周') return Math.min(7, c.activeDays);
+    if (time === '本月') return Math.min(31, c.activeDays);
+    if (time === '本季度') return Math.min(92, c.activeDays);
+    if (time === '本年') return Math.min(366, c.activeDays);
+    return c.activeDays;
+  }
+  if (field === 'duration') return Math.round(c.duration);
+  return 0;
+}
+
+function customerStatus(c, time) { return cm(c, 'activeDays', time) > 0 ? '活跃' : '沉睡'; }
+
+function getFiltered() {
+  let data = [...clients];
+  data = data.filter(c => new Date(c.expiry + 'T23:59:59') >= prototypeToday);
+  if (state.ov.city !== '全部城市') data = data.filter(c => c.city === state.ov.city);
+  if (state.ov.pkg !== '全部套餐') data = data.filter(c => c.pkg === state.ov.pkg);
+  if (state.ov.search) { const q = state.ov.search.toLowerCase(); data = data.filter(c => c.name.toLowerCase().includes(q)); }
+  if (state.ov.range === '活跃客户') data = data.filter(c => customerStatus(c, state.ov.time) === '活跃');
+  else if (state.ov.range === '沉睡客户') data = data.filter(c => customerStatus(c, state.ov.time) === '沉睡');
+  else if (state.ov.range === '30天内到期') {
+    const now = new Date(); const cutoff = new Date(now.getTime() + 30*86400000);
+    data = data.filter(c => { const d = new Date(c.expiry); return d >= now && d <= cutoff; });
+  }
+  const field = state.ov.sort, dir = state.ov.sortDir === 'asc' ? 1 : -1;
+  if (field === 'expiry') data.sort((a,b) => a.expiry.localeCompare(b.expiry) * dir);
+  else if (field === 'scans') data.sort((a,b) => (cm(a,'scans',state.ov.time) - cm(b,'scans',state.ov.time)) * dir);
+  else if (field === 'activeDays') data.sort((a,b) => (cm(a,'activeDays',state.ov.time) - cm(b,'activeDays',state.ov.time)) * dir);
+  else if (field === 'duration') data.sort((a,b) => { const av=cm(a,'duration',state.ov.time),bv=cm(b,'duration',state.ov.time); if(!av&&!bv)return 0; if(!av)return 1; if(!bv)return -1; return (av-bv)*dir; });
+  return data;
+}
+
+function renderOvTable() {
+  const filtered = getFiltered(), total = filtered.length;
+  const tp = Math.ceil(total/pageSize)||1;
+  if (state.ov.page > tp) state.ov.page = tp;
+  const start = (state.ov.page-1)*pageSize, pd = filtered.slice(start, start+pageSize);
+
+  document.querySelectorAll('#view-overview .sort-btn').forEach(btn => {
+    const f = btn.dataset.sort;
+    btn.classList.toggle('active', f === state.ov.sort);
+    btn.textContent = f === state.ov.sort ? (state.ov.sortDir === 'asc' ? '↑' : '↓') : '↕';
+  });
+
+  const cities = [...new Set(clients.map(c => c.city))];
+  const cs = document.getElementById('ov-city');
+  cs.innerHTML = '<option>全部城市</option>' + cities.map(c => `<option>${c}</option>`).join('');
+  cs.value = state.ov.city;
+
+  let html = '';
+  pd.forEach(c => {
+    const now = new Date(), expiry = new Date(c.expiry), dl = Math.ceil((expiry - now)/86400000);
+    const st = customerStatus(c, state.ov.time);
+    const sc = cm(c,'scans',state.ov.time), ad = cm(c,'activeDays',state.ov.time), dr = cm(c,'duration',state.ov.time);
+    const ecls = dl <= 30 && dl >= 0 ? ' style="color:var(--warning);font-weight:700"' : '';
+    html += `<tr>
+      <td class="name">${c.name}</td><td>${c.pkg}</td><td>${c.city}</td>
+      <td class="mono"${ecls}>${c.expiry}</td>
+      <td><span class="tag ${st==='活跃'?'active':'sleep'}">${st}</span></td>
+      <td class="mono">${c.last}</td>
+      <td class="mono">${fmt(sc)}次</td><td class="mono">${ad}天</td><td class="mono">${dur(dr)}</td></tr>`;
+  });
+  if (pd.length === 0) html = `<tr><td colspan="9"><div class="empty-state"><div><b>没有符合条件的客户</b></div></div></td></tr>`;
+  document.getElementById('ov-table-body').innerHTML = html;
+  document.getElementById('ov-result-info').textContent = `共 ${total} 条，每页 ${pageSize} 条`;
+
+  let phtml = '';
+  for (let i = 1; i <= tp; i++) phtml += `<button class="page-button${i===state.ov.page?' active':''}" data-p="${i}">${i}</button>`;
+  document.getElementById('ov-page-btns').innerHTML = phtml;
+  document.querySelectorAll('#ov-page-btns .page-button').forEach(b => {
+    b.addEventListener('click', () => { state.ov.page = +b.dataset.p; renderOvTable(); });
+  });
+}
+
+// ===== Events =====
+document.getElementById('nav-dashboard').addEventListener('click', goDashboard);
+document.getElementById('dash-time').addEventListener('change', function() { state.dashTime = this.value; renderDashboard(); });
+document.getElementById('dash-to-list').addEventListener('click', () => goOverview({range:'有效客户'}));
+document.getElementById('donut-click').addEventListener('click', () => goOverview({range:'活跃客户'}));
+document.getElementById('valid-total-click').addEventListener('click', () => goOverview({range:'有效客户'}));
+document.querySelectorAll('.status-row').forEach(b => {
+  b.addEventListener('click', (e) => { e.stopPropagation(); goOverview({range: b.dataset.range}); });
+});
+document.querySelectorAll('.expiry-link').forEach(b => {
+  b.addEventListener('click', () => { if (!b.classList.contains('zero')) goOverview({expiringPkg: b.dataset.pkg}); });
+});
+document.querySelectorAll('.status-tab').forEach(b => {
+  b.addEventListener('click', () => switchDashTab(b.dataset.tab));
+});
+
+document.getElementById('overview-back').addEventListener('click', goDashboard);
+document.getElementById('trend-toggle-btn').addEventListener('click', function() {
+  const c = document.getElementById('trend-content'), a = document.getElementById('trend-arrow');
+  c.classList.toggle('open'); a.classList.toggle('open');
+  if (c.classList.contains('open')) renderOvChart();
+});
+document.getElementById('trend-prev').addEventListener('click', () => {
+  if (state.ov.trendOffset > 0) { state.ov.trendOffset--; renderOvChart(); }
+});
+document.getElementById('trend-next').addEventListener('click', () => {
+  if (state.ov.trendOffset < allMonths.length - WIN) { state.ov.trendOffset++; renderOvChart(); }
+});
+['ov-time','ov-city','ov-pkg','ov-range'].forEach(k => {
+  document.getElementById(k).addEventListener('change', function() {
+    state.ov[k.replace('ov-','')] = this.value; state.ov.page = 1;
+    if (this.value === '30天内到期') { state.ov.sort = 'expiry'; state.ov.sortDir = 'asc'; }
+    renderOvTable();
+  });
+});
+document.getElementById('ov-search').addEventListener('input', function() {
+  clearTimeout(this._t); this._t = setTimeout(() => { state.ov.search = this.value.trim(); state.ov.page = 1; renderOvTable(); }, 300);
+});
+document.getElementById('ov-clear').addEventListener('click', () => {
+  state.ov = { time:'本月', city:'全部城市', pkg:'全部套餐', range:'有效客户', search:'', sort:'expiry', sortDir:'asc', page:1, trendOffset: Math.max(0, allMonths.length - WIN) };
+  syncOvFilters(); renderOvTable();
+});
+document.querySelectorAll('#view-overview .sort-btn').forEach(btn => {
+  btn.addEventListener('click', function(e) {
+    e.stopPropagation();
+    const f = this.dataset.sort;
+    if (state.ov.sort === f) state.ov.sortDir = state.ov.sortDir === 'asc' ? 'desc' : 'asc';
+    else { state.ov.sort = f; state.ov.sortDir = f === 'expiry' ? 'asc' : 'desc'; }
+    state.ov.page = 1; renderOvTable();
+  });
+});
+
+renderDashboard();
+switchDashTab('total');
+</script>
+</body>
+</html>
